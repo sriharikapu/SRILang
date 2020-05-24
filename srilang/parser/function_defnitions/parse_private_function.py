@@ -1,22 +1,22 @@
 import ast
 from typing import Any, List
 
-from vyper.exceptions import FunctionDeclarationException
-from vyper.parser.context import Context
-from vyper.parser.expr import Expr
-from vyper.parser.function_definitions.utils import (
+from srilang.exceptions import FunctionDeclarationException
+from srilang.parser.context import Context
+from srilang.parser.expr import Expr
+from srilang.parser.function_definitions.utils import (
     get_default_names_to_set,
     get_nonreentrant_lock,
     get_sig_statements,
     make_unpacker,
 )
-from vyper.parser.lll_node import LLLnode
-from vyper.parser.parser_utils import getpos, make_setter
-from vyper.parser.stmt import parse_body
-from vyper.signatures import FunctionSignature, sig_utils
-from vyper.signatures.function_signature import VariableRecord
-from vyper.types.types import BaseType, ByteArrayLike, get_size_of_type
-from vyper.utils import MemoryPositions
+from srilang.parser.lll_node import LLLnode
+from srilang.parser.parser_utils import getpos, make_setter
+from srilang.parser.stmt import parse_body
+from srilang.signatures import FunctionSignature, sig_utils
+from srilang.signatures.function_signature import VariableRecord
+from srilang.types.types import BaseType, ByteArrayLike, get_size_of_type
+from srilang.utils import MemoryPositions
 
 
 def get_private_arg_copier(total_size: int, memory_dest: int) -> List[Any]:

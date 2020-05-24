@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# egg-related
+srilang.egg-info/
+build/
+dist/
+.eggs/
+
+.pytest_cache/
+
+# pyenv
+.python-version
+
+# dotenv
+.env
+
+# virtualenv
+.venv/
+venv/
+ENV/
+
+# Coverage tests
+.coverage*
+.cache/
+htmlcov/
+coverage.xml
+
+# sphinx
+docs/_build
+docs/modules.rst
+
+# IDEs
+.idea/
+.vscode/
+.sublime/
+
+.tox
+.mypy_cache
+.hypothesis
+
+# srilang
+srilang/srilang_git_version.txt

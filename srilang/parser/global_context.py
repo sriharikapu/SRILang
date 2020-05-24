@@ -1,6 +1,6 @@
 from typing import Optional
 
-from srilang import ast as vy_ast
+from srilang import ast as sri_ast
 from srilang.exceptions import (
     EventDeclarationException,
     FunctionDeclarationException,
@@ -45,7 +45,7 @@ class GlobalContext:
     # Parse top-level functions and variables
     @classmethod
     def get_global_context(
-        cls, srilang_module: "vy_ast.Module", interface_codes: Optional[InterfaceImports] = None
+        cls, srilang_module: "sri_ast.Module", interface_codes: Optional[InterfaceImports] = None
     ) -> "GlobalContext":
         from srilang.signatures.interface import (
             extract_sigs,
@@ -56,7 +56,7 @@ class GlobalContext:
 
         for item in srilang_module:
             # Contract references
-            if isinstance(item, vy_ast.ClassDef):
+            if isinstance(item, sri_ast.ClassDef):
                 if global_ctx._events or global_ctx._globals or global_ctx._defs:
                     raise StructureException((
                         "External contract and struct declarations must come "
@@ -84,9 +84,9 @@ class GlobalContext:
 
             # Statements of the form:
             # variable_name: type
-            elif isinstance(item, vy_ast.AnnAssign):
+            elif isinstance(item, sri_ast.AnnAssign):
                 is_implements_statement = (
-                    isinstance(item.target, vy_ast.Name) and item.target.id == 'implements'
+                    isinstance(item.target, sri_ast.Name) and item.target.id == 'implements'
                 ) and item.annotation
 
                 # implements statement.
@@ -100,13 +100,13 @@ class GlobalContext:
                 else:
                     global_ctx.add_globals_and_events(item)
             # Function definitions
-            elif isinstance(item, vy_ast.FunctionDef):
+            elif isinstance(item, sri_ast.FunctionDef):
                 if item.name in global_ctx._globals:
                     raise FunctionDeclarationException(
                         f"Function name shadowing a variable name: {item.name}"
                     )
                 global_ctx._defs.append(item)
-            elif isinstance(item, vy_ast.ImportFrom):
+            elif isinstance(item, sri_ast.ImportFrom):
                 if not item.level and item.module == 'srilang.interfaces':
                     built_in_interfaces = get_builtin_interfaces()
                     for item_alias in item.names:
@@ -133,7 +133,7 @@ class GlobalContext:
                                 f'Unknown interface {interface_name}', item
                             )
                         global_ctx._interfaces[interface_name] = extract_sigs(interface_codes[interface_name])  # noqa: E501
-            elif isinstance(item, vy_ast.Import):
+            elif isinstance(item, sri_ast.Import):
                 for item_alias in item.names:
                     if not item_alias.asname:
                         raise StructureException(
@@ -239,19 +239,19 @@ class GlobalContext:
     # Parser for a single line
     @staticmethod
     def parse_line(source_code: str) -> list:
-        parsed_ast = vy_ast.parse_to_ast(source_code)[0]
+        parsed_ast = sri_ast.parse_to_ast(source_code)[0]
         return parsed_ast
 
     # A struct is a list of members
-    def make_struct(self, node: "vy_ast.ClassDef") -> list:
+    def make_struct(self, node: "sri_ast.ClassDef") -> list:
         members = []
 
         for item in node.body:
-            if isinstance(item, vy_ast.AnnAssign):
+            if isinstance(item, sri_ast.AnnAssign):
                 member_name = item.target
                 member_type = item.annotation
                 # Check well-formedness of member names
-                if not isinstance(member_name, vy_ast.Name):
+                if not isinstance(member_name, sri_ast.Name):
                     raise InvalidType(
                         f"Invalid member name for struct {node.name}, needs to be a valid name. ",
                         item
@@ -282,11 +282,11 @@ class GlobalContext:
 
     # A contract is a list of functions.
     @staticmethod
-    def make_contract(node: "vy_ast.ClassDef") -> list:
+    def make_contract(node: "sri_ast.ClassDef") -> list:
         _defs = []
         for item in node.body:
             # Function definitions
-            if isinstance(item, vy_ast.FunctionDef):
+            if isinstance(item, sri_ast.FunctionDef):
                 _defs.append(item)
             else:
                 raise StructureException("Invalid contract reference", item)
@@ -295,15 +295,15 @@ class GlobalContext:
     def get_item_name_and_attributes(self, item, attributes):
         is_map_invocation = (
             (
-                isinstance(item, vy_ast.Call) and isinstance(item.func, vy_ast.Name)
+                isinstance(item, sri_ast.Call) and isinstance(item.func, sri_ast.Name)
             ) and item.func.id == 'map'
         )
 
-        if isinstance(item, vy_ast.Name):
+        if isinstance(item, sri_ast.Name):
             return item.id, attributes
-        elif isinstance(item, vy_ast.AnnAssign):
+        elif isinstance(item, sri_ast.AnnAssign):
             return self.get_item_name_and_attributes(item.annotation, attributes)
-        elif isinstance(item, vy_ast.Subscript):
+        elif isinstance(item, sri_ast.Subscript):
             return self.get_item_name_and_attributes(item.value, attributes)
         elif is_map_invocation:
             if len(item.args) != 2:
@@ -312,7 +312,7 @@ class GlobalContext:
                 )
             return self.get_item_name_and_attributes(item.args, attributes)
         # elif ist
-        elif isinstance(item, vy_ast.Call) and isinstance(item.func, vy_ast.Name):
+        elif isinstance(item, sri_ast.Call) and isinstance(item.func, sri_ast.Name):
             attributes[item.func.id] = True
             # Raise for multiple args
             if len(item.args) != 1:
@@ -336,7 +336,7 @@ class GlobalContext:
 
         is_valid_struct = (
             len(args) == 1 and
-            isinstance(args[0], (vy_ast.Subscript, vy_ast.Name, vy_ast.Call))
+            isinstance(args[0], (sri_ast.Subscript, sri_ast.Name, sri_ast.Call))
         ) and item.target
 
         if is_valid_struct:
@@ -348,8 +348,8 @@ class GlobalContext:
 
     @staticmethod
     def get_call_func_name(item):
-        if isinstance(item.annotation, vy_ast.Call) and \
-           isinstance(item.annotation.func, vy_ast.Name):
+        if isinstance(item.annotation, sri_ast.Call) and \
+           isinstance(item.annotation.func, sri_ast.Name):
             return item.annotation.func.id
 
     def add_globals_and_events(self, item):
@@ -362,7 +362,7 @@ class GlobalContext:
             )
 
         # Make sure we have a valid variable name.
-        if not isinstance(item.target, vy_ast.Name):
+        if not isinstance(item.target, sri_ast.Name):
             raise StructureException('Invalid global variable name', item.target)
 
         # Handle constants.
@@ -384,7 +384,7 @@ class GlobalContext:
                     "Events must all come before global declarations and function definitions", item
                 )
             self._events.append(item)
-        elif not isinstance(item.target, vy_ast.Name):
+        elif not isinstance(item.target, sri_ast.Name):
             raise StructureException(
                 "Can only assign type to variable in top-level statement", item
             )
@@ -420,7 +420,7 @@ class GlobalContext:
                     self._getters[-1].pos = getpos(item)
                     set_offsets(self._getters[-1], self._getters[-1].pos)
         elif self.get_call_func_name(item) == "public":
-            if isinstance(item.annotation.args[0], vy_ast.Name) and item_name in self._contracts:
+            if isinstance(item.annotation.args[0], sri_ast.Name) and item_name in self._contracts:
                 typ = ContractType(item_name)
             else:
                 typ = parse_type(
@@ -441,7 +441,7 @@ class GlobalContext:
                 self._getters[-1].pos = getpos(item)
                 set_offsets(self._getters[-1], self._getters[-1].pos)
 
-        elif isinstance(item.annotation, (vy_ast.Name, vy_ast.Call, vy_ast.Subscript)):
+        elif isinstance(item.annotation, (sri_ast.Name, sri_ast.Call, sri_ast.Subscript)):
             self._globals[item.target.id] = VariableRecord(
                 item.target.id, len(self._globals),
                 parse_type(

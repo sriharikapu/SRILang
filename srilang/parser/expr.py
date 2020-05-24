@@ -1,6 +1,6 @@
 import warnings
 
-from srilang import ast as vy_ast
+from srilang import ast as sri_ast
 from srilang.exceptions import (
     EvmVersionException,
     InvalidLiteral,
@@ -79,23 +79,23 @@ class Expr(object):
         self.context = context
         self.expr_table = {
             LLLnode: self.get_expr,
-            vy_ast.Int: self.integer,
-            vy_ast.Decimal: self.decimal,
-            vy_ast.Hex: self.hexstring,
-            vy_ast.Str: self.string,
-            vy_ast.NameConstant: self.constants,
-            vy_ast.Name: self.variables,
-            vy_ast.Attribute: self.attribute,
-            vy_ast.Subscript: self.subscript,
-            vy_ast.BinOp: self.arithmetic,
-            vy_ast.Compare: self.compare,
-            vy_ast.BoolOp: self.boolean_operations,
-            vy_ast.UnaryOp: self.unary_operations,
-            vy_ast.Call: self.call,
-            vy_ast.List: self.list_literals,
-            vy_ast.Tuple: self.tuple_literals,
-            vy_ast.Dict: self.dict_fail,
-            vy_ast.Bytes: self.bytes,
+            sri_ast.Int: self.integer,
+            sri_ast.Decimal: self.decimal,
+            sri_ast.Hex: self.hexstring,
+            sri_ast.Str: self.string,
+            sri_ast.NameConstant: self.constants,
+            sri_ast.Name: self.variables,
+            sri_ast.Attribute: self.attribute,
+            sri_ast.Subscript: self.subscript,
+            sri_ast.BinOp: self.arithmetic,
+            sri_ast.Compare: self.compare,
+            sri_ast.BoolOp: self.boolean_operations,
+            sri_ast.UnaryOp: self.unary_operations,
+            sri_ast.Call: self.call,
+            sri_ast.List: self.list_literals,
+            sri_ast.Tuple: self.tuple_literals,
+            sri_ast.Dict: self.dict_fail,
+            sri_ast.Bytes: self.bytes,
         }
         expr_type = self.expr.__class__
         if expr_type in self.expr_table:
@@ -257,7 +257,7 @@ class Expr(object):
                     self.expr
                 )
             if (
-                isinstance(self.expr.value, vy_ast.Name) and
+                isinstance(self.expr.value, sri_ast.Name) and
                 self.expr.value.id == "self" and
                 version_check(begin="istanbul")
             ):
@@ -310,7 +310,7 @@ class Expr(object):
                 pos=getpos(self.expr)
             )
         # self.x: global attribute
-        elif isinstance(self.expr.value, vy_ast.Name) and self.expr.value.id == "self":
+        elif isinstance(self.expr.value, sri_ast.Name) and self.expr.value.id == "self":
             if self.expr.attr not in self.context.globals:
                 raise VariableDeclarationException(
                     "Persistent variable undeclared: " + self.expr.attr,
@@ -326,7 +326,7 @@ class Expr(object):
             )
         # Reserved keywords
         elif (
-            isinstance(self.expr.value, vy_ast.Name) and
+            isinstance(self.expr.value, sri_ast.Name) and
             self.expr.value.id in ENVIRONMENT_VARIABLES
         ):
             key = self.expr.value.id + "." + self.expr.attr
@@ -408,14 +408,14 @@ class Expr(object):
     def subscript(self):
         sub = Expr.parse_variable_location(self.expr.value, self.context)
         if isinstance(sub.typ, (MappingType, ListType)):
-            if not isinstance(self.expr.slice, vy_ast.Index):
+            if not isinstance(self.expr.slice, sri_ast.Index):
                 raise StructureException(
                     "Array access must access a single element, not a slice",
                     self.expr,
                 )
             index = Expr.parse_value_expr(self.expr.slice.value, self.context)
         elif isinstance(sub.typ, TupleType):
-            if not isinstance(self.expr.slice.value, vy_ast.Int) or self.expr.slice.value.n < 0 or self.expr.slice.value.n >= len(sub.typ.members):  # noqa: E501
+            if not isinstance(self.expr.slice.value, sri_ast.Int) or self.expr.slice.value.n < 0 or self.expr.slice.value.n >= len(sub.typ.members):  # noqa: E501
                 raise TypeMismatch("Tuple index invalid", self.expr.slice.value)
             index = self.expr.slice.value.n
         else:
@@ -455,7 +455,7 @@ class Expr(object):
                     pos=pos,
                 )
 
-        if left.typ.typ == "decimal" and isinstance(self.expr.op, vy_ast.Pow):
+        if left.typ.typ == "decimal" and isinstance(self.expr.op, sri_ast.Pow):
             raise TypeMismatch(
                 "Cannot perform exponentiation on decimal values.",
                 self.expr,
@@ -469,17 +469,17 @@ class Expr(object):
             )
 
         ltyp, rtyp = left.typ.typ, right.typ.typ
-        if isinstance(self.expr.op, (vy_ast.Add, vy_ast.Sub)):
+        if isinstance(self.expr.op, (sri_ast.Add, sri_ast.Sub)):
             new_typ = BaseType(ltyp)
-            op = 'add' if isinstance(self.expr.op, vy_ast.Add) else 'sub'
+            op = 'add' if isinstance(self.expr.op, sri_ast.Add) else 'sub'
 
-            if ltyp == 'uint256' and isinstance(self.expr.op, vy_ast.Add):
+            if ltyp == 'uint256' and isinstance(self.expr.op, sri_ast.Add):
                 # safeadd
                 arith = ['seq',
                          ['assert', ['ge', ['add', 'l', 'r'], 'l']],
                          ['add', 'l', 'r']]
 
-            elif ltyp == 'uint256' and isinstance(self.expr.op, vy_ast.Sub):
+            elif ltyp == 'uint256' and isinstance(self.expr.op, sri_ast.Sub):
                 # safesub
                 arith = ['seq',
                          ['assert', ['ge', 'l', 'r']],
@@ -491,7 +491,7 @@ class Expr(object):
             else:
                 raise Exception(f"Unsupported Operation '{op}({ltyp}, {rtyp})'")
 
-        elif isinstance(self.expr.op, vy_ast.Mult):
+        elif isinstance(self.expr.op, sri_ast.Mult):
             new_typ = BaseType(ltyp)
             if ltyp == rtyp == 'uint256':
                 arith = ['with', 'ans', ['mul', 'l', 'r'],
@@ -518,7 +518,7 @@ class Expr(object):
             else:
                 raise Exception(f"Unsupported Operation 'mul({ltyp}, {rtyp})'")
 
-        elif isinstance(self.expr.op, vy_ast.Div):
+        elif isinstance(self.expr.op, sri_ast.Div):
             if right.typ.is_literal and right.value == 0:
                 raise ZeroDivisionException("Cannot divide by 0.", self.expr)
 
@@ -538,7 +538,7 @@ class Expr(object):
             else:
                 raise Exception(f"Unsupported Operation 'div({ltyp}, {rtyp})'")
 
-        elif isinstance(self.expr.op, vy_ast.Mod):
+        elif isinstance(self.expr.op, sri_ast.Mod):
             if right.typ.is_literal and right.value == 0:
                 raise ZeroDivisionException("Cannot calculate modulus of 0.", self.expr)
 
@@ -552,8 +552,8 @@ class Expr(object):
 
             else:
                 raise Exception(f"Unsupported Operation 'mod({ltyp}, {rtyp})'")
-        elif isinstance(self.expr.op, vy_ast.Pow):
-            if ltyp != 'int128' and ltyp != 'uint256' and isinstance(self.expr.right, vy_ast.Name):
+        elif isinstance(self.expr.op, sri_ast.Pow):
+            if ltyp != 'int128' and ltyp != 'uint256' and isinstance(self.expr.right, sri_ast.Name):
                 raise TypeMismatch(
                     "Cannot use dynamic values as exponents, for unit base types",
                     self.expr,
@@ -704,7 +704,7 @@ class Expr(object):
             # TODO: Can this if branch be removed ^
             pass
 
-        elif isinstance(self.expr.op, vy_ast.In) and isinstance(right.typ, ListType):
+        elif isinstance(self.expr.op, sri_ast.In) and isinstance(right.typ, ListType):
             if left.typ != right.typ.subtype:
                 raise TypeMismatch(
                     "Can't use IN comparison with different types!",
@@ -712,17 +712,17 @@ class Expr(object):
                 )
             return self.build_in_comparator()
 
-        if isinstance(self.expr.op, vy_ast.Gt):
+        if isinstance(self.expr.op, sri_ast.Gt):
             op = 'sgt'
-        elif isinstance(self.expr.op, vy_ast.GtE):
+        elif isinstance(self.expr.op, sri_ast.GtE):
             op = 'sge'
-        elif isinstance(self.expr.op, vy_ast.LtE):
+        elif isinstance(self.expr.op, sri_ast.LtE):
             op = 'sle'
-        elif isinstance(self.expr.op, vy_ast.Lt):
+        elif isinstance(self.expr.op, sri_ast.Lt):
             op = 'slt'
-        elif isinstance(self.expr.op, vy_ast.Eq):
+        elif isinstance(self.expr.op, sri_ast.Eq):
             op = 'eq'
-        elif isinstance(self.expr.op, vy_ast.NotEq):
+        elif isinstance(self.expr.op, sri_ast.NotEq):
             op = 'ne'
         else:
             raise Exception("Unsupported comparison operator")
@@ -805,7 +805,7 @@ class Expr(object):
         # Iterate through values
         for value in self.expr.values:
             # Check for calls at assignment
-            if self.context.in_assignment and isinstance(value, vy_ast.Call):
+            if self.context.in_assignment and isinstance(value, sri_ast.Call):
                 raise StructureException(
                     "Boolean operations with calls may not be performed on assignment",
                     self.expr,
@@ -822,9 +822,9 @@ class Expr(object):
             # TODO: Handle special case of literals and simplify at compile time
 
         # Check for valid ops
-        if isinstance(self.expr.op, vy_ast.And):
+        if isinstance(self.expr.op, sri_ast.And):
             op = 'and'
-        elif isinstance(self.expr.op, vy_ast.Or):
+        elif isinstance(self.expr.op, sri_ast.Or):
             op = 'or'
         else:
             raise Exception("Unsupported bool op: " + self.expr.op)
@@ -853,7 +853,7 @@ class Expr(object):
     # Unary operations (only "not" supported)
     def unary_operations(self):
         operand = Expr.parse_value_expr(self.expr.operand, self.context)
-        if isinstance(self.expr.op, vy_ast.Not):
+        if isinstance(self.expr.op, sri_ast.Not):
             if isinstance(operand.typ, BaseType) and operand.typ.typ == 'bool':
                 return LLLnode.from_list(["iszero", operand], typ='bool', pos=getpos(self.expr))
             else:
@@ -861,7 +861,7 @@ class Expr(object):
                     f"Only bool is supported for not operation, {operand.typ} supplied.",
                     self.expr,
                 )
-        elif isinstance(self.expr.op, vy_ast.USub):
+        elif isinstance(self.expr.op, sri_ast.USub):
             if not is_numeric_type(operand.typ):
                 raise TypeMismatch(
                     f"Unsupported type for negation: {operand.typ}",
@@ -892,7 +892,7 @@ class Expr(object):
             DISPATCH_TABLE,
         )
 
-        if isinstance(self.expr.func, vy_ast.Name):
+        if isinstance(self.expr.func, sri_ast.Name):
             function_name = self.expr.func.id
 
             if function_name in DISPATCH_TABLE:
@@ -908,7 +908,7 @@ class Expr(object):
                     )
 
                 arg = args[0]
-                if not isinstance(arg, vy_ast.Dict):
+                if not isinstance(arg, sri_ast.Dict):
                     raise TypeMismatch(
                         "Struct can only be constructed with a dict",
                         self.expr,
@@ -931,7 +931,7 @@ class Expr(object):
                 if function_name in [x.split('(')[0] for x, _ in self.context.sigs['self'].items()]:
                     err_msg += f". Did you mean self.{function_name}?"
                 raise StructureException(err_msg, self.expr)
-        elif isinstance(self.expr.func, vy_ast.Attribute) and isinstance(self.expr.func.value, vy_ast.Name) and self.expr.func.value.id == "self":  # noqa: E501
+        elif isinstance(self.expr.func, sri_ast.Attribute) and isinstance(self.expr.func.value, sri_ast.Name) and self.expr.func.value.id == "self":  # noqa: E501
             return self_call.make_call(self.expr, self.context)
         else:
             return external_call.make_external_call(self.expr, self.context)
@@ -981,7 +981,7 @@ class Expr(object):
         member_subs = {}
         member_typs = {}
         for key, value in zip(expr.keys, expr.values):
-            if not isinstance(key, vy_ast.Name):
+            if not isinstance(key, sri_ast.Name):
                 raise TypeMismatch(
                     f"Invalid member variable for struct: {getattr(key, 'id', '')}",
                     key,

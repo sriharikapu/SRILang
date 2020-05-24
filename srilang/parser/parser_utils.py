@@ -1,6 +1,6 @@
 from decimal import Decimal, getcontext
 
-from srilang import ast as vy_ast
+from srilang import ast as sri_ast
 from srilang.exceptions import (
     ArrayIndexException,
     CompilerPanic,
@@ -246,11 +246,11 @@ def set_offsets(node, pos):
     # TODO replace this with a visitor pattern
     for field in node.get_fields():
         item = getattr(node, field, None)
-        if isinstance(item, vy_ast.srilangNode):
+        if isinstance(item, sri_ast.srilangNode):
             set_offsets(item, pos)
         elif isinstance(item, list):
             for i in item:
-                if isinstance(i, vy_ast.srilangNode):
+                if isinstance(i, sri_ast.srilangNode):
                     set_offsets(i, pos)
     node.lineno, node.col_offset, node.end_lineno, node.end_col_offset = pos
 
@@ -756,11 +756,11 @@ def make_setter(left, right, location, pos, in_function_call=False):
 
 
 def is_return_from_function(node):
-    if isinstance(node, vy_ast.Expr) and node.get('value.func.id') == "selfdestruct":
+    if isinstance(node, sri_ast.Expr) and node.get('value.func.id') == "selfdestruct":
         return True
-    if isinstance(node, vy_ast.Return):
+    if isinstance(node, sri_ast.Return):
         return True
-    elif isinstance(node, vy_ast.Raise):
+    elif isinstance(node, sri_ast.Raise):
         return True
     else:
         return False
@@ -768,7 +768,7 @@ def is_return_from_function(node):
 
 def check_single_exit(fn_node):
     _check_return_body(fn_node, fn_node.body)
-    for node in fn_node.get_descendants(vy_ast.If):
+    for node in fn_node.get_descendants(sri_ast.If):
         _check_return_body(node, node.body)
         if node.orelse:
             _check_return_body(node, node.orelse)
@@ -806,7 +806,7 @@ def _return_check(node):
         return True
     elif isinstance(node, list):
         return any(_return_check(stmt) for stmt in node)
-    elif isinstance(node, vy_ast.If):
+    elif isinstance(node, sri_ast.If):
         if_body_check = _return_check(node.body)
         else_body_check = _return_check(node.orelse)
         if if_body_check and else_body_check:  # both side need to match.
